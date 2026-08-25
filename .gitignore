@@ -1,0 +1,37 @@
+# Corpus data — ArchiMob is CC BY-NC-SA 4.0; do not commit or redistribute from here
+data/raw/
+data/processed/
+
+# Audio in any location
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.m4a
+
+# Model checkpoints and training artefacts
+checkpoints/
+runs/
+*.safetensors
+*.bin
+*.pt
+*.ckpt
+wandb/
+tb_logs/
+
+# Third-party clones (reference only, not vendored)
+third_party/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.ipynb_checkpoints/
+
+# HF caches if accidentally local
+.cache/
+hf_cache/
+
+# OS
+.DS_Store
