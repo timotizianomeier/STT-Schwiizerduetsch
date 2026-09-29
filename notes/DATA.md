@@ -98,6 +98,27 @@ Overlap: `audio_pointer` is shared by two utterances when speech overlaps
 re-derived from the actual chunk files once the audio is on the cluster, so
 the usable count will drop further.
 
+## Splits (Phase 3, text side; hours pending audio)
+
+| split | docs | utterances | words | share of words | regions |
+|---|---|---|---|---|---|
+| train | 36 | 61,298 (incl. 7,901 interviewer) | 456,353 | 90.0% | all 15 |
+| dev | 3 (1055 ZH, 1142 BE, 1235 LU) | 2,313 | 19,489 | 3.8% | ZH, BE, LU |
+| test | 4 (1225 ZH, 1121 BE, 1195 LU, 1263 BS) | 4,291 | 31,223 | 6.2% | ZH, BE, LU, BS |
+| dropped | — | 14,535 | — | — | unusable + non-interviewee rows of held-out docs |
+
+Rationale and rules in `src/splits.py`. Train still holds ZH 16.8k, AG
+13.6k, BS 5.9k, BE 5.3k, LU 3.5k interviewee utterances.
+
+## FlexWER variant table
+
+`src/metrics.py` builds `dieth_to_norm.json` from all usable utterances:
+43,815 Dieth spellings, 28,713 normalised forms, 3,914 spellings that map
+to more than one normalised form (homographs like *me* = "man"/"wenn").
+Largest variant sets: *haben* 136, *eigentlich* 81, *können* 76, *nachher*
+73, *wenn* 70. Slightly smaller than Kew's table (147/93/82) because we
+drop unusable utterances first.
+
 ## Character table (Dieth layer)
 
 Text is already lowercased and punctuation-free. Full table in

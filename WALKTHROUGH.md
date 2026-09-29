@@ -200,7 +200,41 @@ Run with `uv run pytest`. If a future "small cleanup" changes a training target,
 - `data/processed/archimob_utterances.jsonl` — 82,437 rows, regenerate with
   `uv run python src/parse_archimob.py data/raw/archimob_r2_text/Archimob_Release_2 data/processed/archimob_utterances.jsonl`.
 
-### Open at the end of Phase 2
+---
+
+## Phase 3 (text side) and Phase 6 (metric) — done ahead of the audio
+
+### `src/splits.py` (core; the single easiest place to fool ourselves)
+
+Assigns every utterance to train/dev/test **by document**, with the held-out documents
+listed as constants with a one-line reason each. Read the module docstring: it explains why
+utterance-level splits leak (same voice, room, microphone on both sides), why "by speaker"
+equals "by document" here (speaker ids are document-scoped), and why interviewer utterances
+of held-out documents are dropped rather than moved to train (unidentified, recurring voices
+sharing the test recording). `assign(row)` returns `(split, eval_ok)`; `eval_ok` is true only
+for the interviewee in dev/test. Held-out documents cover ZH, BE, LU, BS and three
+transcriber/tool combinations. Result: train 36 docs / 456k words, dev 3 / 19k, test 4 / 31k.
+
+### `src/metrics.py` (core; the metric the brief asks for)
+
+- `build_dieth_to_norm(rows)` — the variant table: each Dieth spelling → the normalised forms
+  it was aligned with. Built from the whole usable corpus (a scoring lexicon, not model input;
+  same as Kew, so numbers stay comparable).
+- `FlexWER.same(a, b)` — two tokens are the same word if equal or if they share a normalised
+  form. So *hät / het / hèt* all count as *hat*.
+- `_edit_distance(ref, hyp, same)` — a 15-line Levenshtein over word lists with a pluggable
+  equality; `jiwer` cannot do that, which is why it is hand-written. Single-row DP, O(n·m).
+- `all_metrics(refs, hyps, table)` — returns CER and WER from `jiwer` plus FlexWER.
+- Run as a script it writes `data/processed/dieth_to_norm.json` and prints the biggest
+  variant sets (*haben* 136 spellings).
+
+### `tests/test_metrics.py`
+
+Four tests on a three-utterance toy corpus: the table groups spellings correctly; a variant
+spelling scores 0 under FlexWER but > 0 under WER; a real error still costs; insertions and
+deletions are counted; unknown words fall back to exact match.
+
+### Open at the end of Phase 3 (text side)
 
 1. Audio contract approval, then transfer to the cluster and `md5sum` check.
 2. Two policy additions made without prior sign-off, veto possible: drop `<gap>` utterances;

@@ -25,6 +25,7 @@ Run: python src/parse_archimob.py data/raw/archimob_r2_text/Archimob_Release_2 \
 
 from __future__ import annotations
 
+import csv
 import json
 import sys
 from collections import Counter
@@ -38,15 +39,37 @@ XML_ID = "{http://www.w3.org/XML/1998/namespace}id"
 COUNTED = ("pause", "vocal", "del", "unclear", "gap", "incident", "kinesic", "other")
 
 
+def load_metadata(xml_dir: Path) -> dict[str, dict]:
+    """Metadata.txt: one row per interview (doc) — dialect area, transcriber,
+    tool, transcription phase, manual/automatic normalisation. The dialect
+    area is what Phase 6 reports per-region results on; transcriber/tool is
+    the likely source of spelling inconsistency (release notes describe
+    per-phase corrections), so the split should mix them."""
+    meta = {}
+    with open(xml_dir / "Metadata.txt", encoding="utf-8") as f:
+        for r in csv.DictReader(f, delimiter="\t"):
+            area = r["Dialect area"]
+            meta[r["DocID"]] = {
+                "region": area.split()[0],          # canton code, e.g. "ZH"
+                "region_detail": area,
+                "transcriber": r["Transcriptor"],
+                "tool": r["Tool"],
+                "phase": r["Transcription phase"],
+                "normalisation": r["Normalisation"],
+            }
+    return meta
+
+
 def speaker_of(who: str) -> str:
     # who="interviewer" | "otherPerson" | "person_db#EJos1007"
     return who.split("#", 1)[-1]
 
 
-def parse_doc(path: Path) -> list[dict]:
+def parse_doc(path: Path, meta: dict[str, dict]) -> list[dict]:
     root = ET.parse(path).getroot()
     doc_part = path.stem            # "1082_2"
     doc = doc_part.split("_")[0]    # "1082" — the interview (= main speaker)
+    doc_meta = meta[doc]
     rows = []
     for idx, u in enumerate(root.iter(NS + "u"), start=1):
         dieth, norm, counts = [], [], Counter()
@@ -72,6 +95,7 @@ def parse_doc(path: Path) -> list[dict]:
             "idx_in_part": idx,                         # matches Kew's utt_id suffix
             "audio_pointer": u.get("start", "").split("#", 1)[-1],
             "speaker": speaker_of(u.get("who", "")),
+            **doc_meta,
             "raw": raw,
             "text": normalise_dieth(raw),
             "normalised": " ".join(norm),
@@ -85,10 +109,11 @@ def parse_doc(path: Path) -> list[dict]:
 
 def main(xml_dir: str, out_path: str) -> None:
     rows: list[dict] = []
+    meta = load_metadata(Path(xml_dir))
     for path in sorted(Path(xml_dir).glob("*.xml")):
         if path.name == "person_file.xml":
             continue
-        rows.extend(parse_doc(path))
+        rows.extend(parse_doc(path, meta))
 
     # Overlap: two utterances in the same file pointing at the same chunk.
     seen = Counter((r["doc_part"], r["audio_pointer"]) for r in rows)

@@ -94,3 +94,24 @@ Format: date — decision — why.
 - 2026-09-29 — Interviewer utterances are 16% of the corpus and interviewer
   identity is not recorded → **Phase 3 rule: interviewer utterances go to
   train only, never dev/test.** Same for `otherPerson`.
+- 2026-09-29 — **Phase 3 split (text side) fixed in `src/splits.py`.**
+  Document-disjoint; held-out docs chosen by hand, not randomly, to cover
+  ZH/BE/LU/BS and mix transcribers/tools. Test = 1225, 1121, 1195, 1263
+  (4,291 interviewee utts, 31k words, 6.2%); dev = 1055, 1142, 1235 (2,313
+  utts, 19k words, 3.8%); train = 36 docs, 61,298 utts incl. 7,901
+  interviewer utts. Interviewer/otherPerson utterances from held-out docs
+  are dropped, not moved to train (same recording, recurring voice). Small
+  eval sets are deliberate: Whisper-large eval is slow and the brief wants
+  frequent qualitative dumps; a fixed dev subsample will be used during
+  training, full dev for model selection.
+- 2026-09-29 — **FlexWER variant table built from the whole usable corpus**
+  (`data/processed/dieth_to_norm.json`, 43,815 spellings → 28,713 forms),
+  not from train only. It is a scoring lexicon, not model input, so no
+  leakage into the model; and it matches how Kew built theirs (VarDial
+  2020), keeping the number comparable. Match rule: two Dieth tokens are
+  "the same word" if they share ≥1 normalised form. Implemented in
+  `src/metrics.py` with our own DP (jiwer cannot take a custom equality).
+- 2026-09-29 — Lesson logged: first version of the split report was O(n²)
+  (recomputed a set inside the per-row loop) and hung on 82k rows. Caught
+  because the command timed out, not by a test. Reports over the whole
+  corpus should be linear; watch for comprehensions inside loops.
