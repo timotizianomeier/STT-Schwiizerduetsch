@@ -49,6 +49,55 @@ SwissUbase download.
   utterances appear in all three). We will build our own document-disjoint
   splits (Phase 3) and only use theirs for comparability if needed.
 
+## Release 2 XML (downloaded 2026-09-29) — verified against Kew's CSV
+
+Format is **TEI XML** (`Archimob_Release_2/<doc>[_part].xml`, 52 files for 43
+interviews) plus `person_file.xml` and `Metadata.txt` (per doc: speaker,
+birth year, sex, profession, dialect area, transcriber, tool, transcription
+phase, manual/automatic normalisation). Not EXMARaLDA, not TextGrid.
+
+Per utterance `<u start="media_pointers#d1007-T31" who="...">` with one
+`<w normalised="..." tag="POS">dieth</w>` per word — **both layers present
+for every one of the 581,974 words** (0 empty normalisations). Timestamps
+are NOT in the XML: `start` points into an external media-pointer file that
+is not shipped, so segment durations wait on the audio zip.
+
+Annotation elements (corpus totals): `<pause/>` 10,796 · `<vocal><desc>`
+12,928 (eh/ää/ehm/[lacht]...) · `<del type="truncation">` 8,836 (word
+fragments like `zw/`) · `<unclear>` 3,348 (wraps words the transcriber was
+unsure of; words kept) · `<gap reason="unintelligible"/>` 1,549 (speech with
+no text) · `<incident>`/`<kinesic>`/`<other>` 416 (non-speech events).
+
+`src/parse_archimob.py` parses this directly. `src/verify_against_kew.py`
+cross-checked it against `archimob.csv`: 82,432 utterances byte-identical
+after stripping Kew's meta tokens, 3 differ only by stray `()`, 2 differ by
+one word, and Kew has 2 extra empty rows. All 4 real differences match the
+"second correction phase" items in `release_2_notes.pdf` → Kew's CSV was
+built from the pre-2019-correction XML. **Our parse is the source of truth
+from now on**; the CSV is no longer used.
+
+Speakers: `who` is `interviewer` (13,409 utts = 16%), `otherPerson`, or a
+`person_db` id. Interviewer voices are not identified and may recur across
+documents — Phase 3 must keep interviewer utterances out of dev/test.
+
+Overlap: `audio_pointer` is shared by two utterances when speech overlaps
+(77,159 unique pointers for 82,437 utterances). This reproduces Kew's
+`speech_in_speech` flag except for 1 row.
+
+### v1 target filter (`normalise.usable`)
+
+| reason | utterances |
+|---|---|
+| overlap (shared audio chunk) | 10,482 |
+| empty after stripping markers | 1,671 |
+| contains `<gap>` (audible speech without text) | 910 |
+| anonymised (`***`) | 479 |
+| **usable** | **68,895** (513,927 words) |
+
+`missing_audio` (6,318 in Kew's CSV) cannot be derived from the XML; it is
+re-derived from the actual chunk files once the audio is on the cluster, so
+the usable count will drop further.
+
 ## Character table (Dieth layer)
 
 Text is already lowercased and punctuation-free. Full table in
@@ -60,8 +109,9 @@ Text is already lowercased and punctuation-free. Full table in
 | Umlauts | ä (2.87%), ü (1.18%), ö (0.80%) | semantically essential, keep |
 | Grave = open vowel quality (Dieth) | ì (0.47%), è (0.35%), ò (0.27%), ù (0.17%), ǜ (0.07%) | meaningful in Dieth, keep for v1 |
 | Tilde = nasal vowel | õ (489), ã (104), ẽ (70), ĩ (1) | meaningful but rare; keep |
-| Acute | é (114), ó (8), á (5), í (3), ú (2) | mostly loanwords/annotator noise; keep é, fold others → NFC + review |
-| Combining marks | U+0300 (759), U+0301 (3) | **decomposed Unicode — must NFC-normalise** |
+| Acute | é (114), ó (8), á (5), í (3), ú (2) | mostly loanwords; keep all as-is (too rare to matter) |
+| à | 8 | grave on a, same convention as ì/è/ò/ù; keep |
+| Combining marks | U+0300 (759), U+0301 (1 after NFC) | NFC-normalise; ö̀ stays 2 codepoints (no precomposed form); U+0301 dropped |
 | `*` | 1,536 | anonymisation mask → drop utterances |
 | `()` | 5 | artefacts → strip/drop |
 
@@ -86,9 +136,11 @@ available), WER reported for comparability only.
 
 Original audio: wav, 48 kHz→16 kHz conversion needed, mono, chunked
 per-utterance by Kew's `split_audio.py` naming scheme keyed on `utt_id`.
-Segment durations unverifiable until download. Full-set zip size unknown
-(SwissUbase doesn't show it anonymously); plan for tens of GB on
-`/vol/bitbucket/ttm25`.
+Segment durations unverifiable until download. Full-set zip
+(`swissubase_2277_1_0.zip` wrapping `archimob_r2_audio_share.zip`) is
+**19.43 GB**, MD5 `9ea3de64d9cd37a5d9aa589fddf545e6` (verify with `md5sum`
+after transfer). Goes to `/vol/bitbucket/ttm25/stt/data/raw`. Download
+contract submitted 2026-09-29, approval pending.
 
 ## BLOCKERS
 
