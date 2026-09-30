@@ -23,7 +23,8 @@ Rules:
        - mix transcribers/tools (Peters+Nisus, Mächler+FOLKER,
          Aepli+EXMARaLDA), so the test set is not one annotator's habits;
        - be medium-sized single-file recordings without known anomalies
-         (excluded: 1188 "ZH/BS ??", 1240 tiny, 1163 once misaligned).
+         (excluded: 1188 "ZH/BS ??", 1240 tiny, 1163 once misaligned,
+         1235 second half of audio missing from the distribution).
      ZH appears in both dev and test because Züridütsch is the judge
      criterion in the brief.
 
@@ -48,7 +49,8 @@ TEST_DOCS = {
 DEV_DOCS = {
     "1055": "ZH Zürich · Aepli/EXMARaLDA phase 3 · ~840 utts",
     "1142": "BE Ittigen · Peters/Nisus, manual normalisation · ~660 utts",
-    "1235": "LU Wolhusen · Aepli/EXMARaLDA phase 4 · ~800 utts",
+    "1261": "LU Luzern · Peters/Nisus, manual normalisation · ~1200 utts "
+            "(replaced 1235 on 2026-09-30: its audio stops at chunk 519 of 988)",
 }
 MAIN_SPEAKER_EXCLUDED = {"interviewer", "otherPerson"}
 

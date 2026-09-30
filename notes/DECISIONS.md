@@ -115,3 +115,21 @@ Format: date — decision — why.
   (recomputed a set inside the per-row loop) and hung on 82k rows. Caught
   because the command timed out, not by a test. Reports over the whole
   corpus should be linear; watch for comprehensions inside loops.
+- 2026-09-30 — Audio contract approved; `swissubase_2277_1_0.zip` MD5
+  verified locally before transfer. Inspected the nested zip in place
+  (outer entry is stored, hence seekable) rather than extracting 23 GB on
+  the laptop; only docs 1225 and 1055 extracted locally for development.
+- 2026-09-30 — **Dev doc 1235 → 1261.** 1235's audio ends at chunk 519 of
+  988 (403 of its usable utterances have no wav). 1261 is the same region
+  (LU), Peters/Nisus with manual normalisation, 6 missing chunks. Dev is now
+  2,725 utterances / 22.8k words (4.5%).
+- 2026-09-30 — **No Hugging Face `Audio` column** (deviation from brief
+  Phase 3.1). `datasets` 5.0 decodes audio via torchcodec, which needs
+  FFmpeg shared libraries on every machine; on the cluster that is an
+  unknown. `prepare.py` instead writes 16 kHz int16 wavs + a JSONL
+  manifest per split; `train.py` will decode with `soundfile` in the
+  collator. Same information, one fewer native dependency, and any chunk
+  can be played with a normal audio player when a transcript looks wrong.
+- 2026-09-30 — Sample rate is not constant across recordings (48 kHz and
+  44.1 kHz observed). Resampling is per file with soxr_hq, never a fixed
+  ratio.

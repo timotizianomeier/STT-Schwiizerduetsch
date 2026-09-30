@@ -102,8 +102,8 @@ the usable count will drop further.
 
 | split | docs | utterances | words | share of words | regions |
 |---|---|---|---|---|---|
-| train | 36 | 61,298 (incl. 7,901 interviewer) | 456,353 | 90.0% | all 15 |
-| dev | 3 (1055 ZH, 1142 BE, 1235 LU) | 2,313 | 19,489 | 3.8% | ZH, BE, LU |
+| train | 36 | 60,833 (incl. interviewer) | 452,402 | 89.3% | all 15 |
+| dev | 3 (1055 ZH, 1142 BE, 1261 LU) | 2,725 | 22,826 | 4.5% | ZH, BE, LU |
 | test | 4 (1225 ZH, 1121 BE, 1195 LU, 1263 BS) | 4,291 | 31,223 | 6.2% | ZH, BE, LU, BS |
 | dropped | — | 14,535 | — | — | unusable + non-interviewee rows of held-out docs |
 
@@ -153,19 +153,34 @@ Conclusion: plain WER is close to meaningless as a primary metric, exactly as
 the brief suspected. CER primary, FlexWER secondary (mapping table already
 available), WER reported for comparability only.
 
-## Audio (pending)
+## Audio (downloaded 2026-09-30, MD5 verified)
 
-Original audio: wav, 48 kHz→16 kHz conversion needed, mono, chunked
-per-utterance by Kew's `split_audio.py` naming scheme keyed on `utt_id`.
-Segment durations unverifiable until download. Full-set zip
-(`swissubase_2277_1_0.zip` wrapping `archimob_r2_audio_share.zip`) is
-**19.43 GB**, MD5 `9ea3de64d9cd37a5d9aa589fddf545e6` (verify with `md5sum`
-after transfer). Goes to `/vol/bitbucket/ttm25/stt/data/raw`. Download
-contract submitted 2026-09-29, approval pending.
+`swissubase_2277_1_0.zip` (19.4 GB) wraps `archimob_r2_audio_share.zip`
+(20.8 GB, stored uncompressed → readable in place; `scripts/extract_audio.py`
+extracts without materialising it). Inside: `audio_segmented_anonymized/
+<doc_part>/` — **78,156 wavs already cut per utterance**, 23.5 GB, 52
+folders. Mono, 16-bit, **sample rate varies by recording** (48 kHz and
+44.1 kHz seen) → per-file resampling to 16 kHz in `src/prepare.py`.
+
+File name = XML media pointer with `-`→`_` (`d1209-T821` → `d1209_T821.wav`;
+EXMARaLDA docs use `TLI_n`); 1,390 files in 1082_3 carry a doubled
+`1082_3d1082_3_…` prefix. Sizes: median 281 KB ≈ 3 s at 48 kHz; 2,248
+files < 1 s; max 15 MB ≈ 160 s (dropped by the 30 s Whisper limit).
+
+Coverage against the XML: 77,158 pointers, 76,120 with a wav (1,038
+missing, no zero-byte files); 386 wavs have no XML utterance. Of the
+split-assigned utterances 430 lack audio, **403 of them in doc 1235** whose
+audio stops at chunk 519 of 988 → 1235 removed from dev (replaced by 1261).
+Kew's `missing_audio` count (6,318) was from an older distribution; ours is
+the reinstated one described in the release notes.
+
+Local dev copy: docs 1225 and 1055 extracted to `data/raw/audio_dev/`
+(659 MB) so `prepare.py` could be developed against real files. Result on
+those two: 842 dev + 850 test utterances kept, 0.75 h + 0.79 h, 5 dropped
+as < 1 s. Full-corpus hours per split are filled in after the cluster run.
 
 ## BLOCKERS
 
-1. **Audio download needs a human**: create/log into SWITCH edu-ID at
-   swissubase.ch, accept the CC BY-NC-SA usage licence, download
-   `archimob_r2_audio_share.zip` (and ideally `Archimob_Release_2.zip` for
-   provenance/XML) — or generate download links and hand them over.
+1. ~~Audio download needs a human~~ — done 2026-09-30 (contract approved,
+   MD5 verified). Next: transfer to `/vol/bitbucket/ttm25/stt/data/raw`,
+   extract, run `prepare.py` there.

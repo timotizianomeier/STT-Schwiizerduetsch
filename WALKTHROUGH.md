@@ -213,7 +213,8 @@ equals "by document" here (speaker ids are document-scoped), and why interviewer
 of held-out documents are dropped rather than moved to train (unidentified, recurring voices
 sharing the test recording). `assign(row)` returns `(split, eval_ok)`; `eval_ok` is true only
 for the interviewee in dev/test. Held-out documents cover ZH, BE, LU, BS and three
-transcriber/tool combinations. Result: train 36 docs / 456k words, dev 3 / 19k, test 4 / 31k.
+transcriber/tool combinations. Result: train 36 docs / 452k words, dev 3 / 23k, test 4 / 31k (dev doc 1235 replaced by
+1261 once the audio showed 1235 is half missing).
 
 ### `src/metrics.py` (core; the metric the brief asks for)
 
@@ -234,8 +235,35 @@ Four tests on a three-utterance toy corpus: the table groups spellings correctly
 spelling scores 0 under FlexWER but > 0 under WER; a real error still costs; insertions and
 deletions are counted; unknown words fall back to exact match.
 
-### Open at the end of Phase 3 (text side)
+### `scripts/extract_audio.py` (plumbing, cluster)
 
-1. Audio contract approval, then transfer to the cluster and `md5sum` check.
-2. Two policy additions made without prior sign-off, veto possible: drop `<gap>` utterances;
-   interviewer utterances train-only.
+The SwissUbase wrapper stores the 20.8 GB inner zip uncompressed, so Python's `zipfile` can
+open the inner archive *inside* the outer one and extract members straight to disk. Saves
+20 GB of scratch space and one full pass over the data on the cluster.
+
+### `src/prepare.py` (core for Phase 3; the audio side)
+
+- `wav_index(root)` maps every wav file back to its XML media pointer. Four name patterns
+  exist (plain `d1209_T821`, multi-part `d1082_2_T5`, EXMARaLDA `TLI_n`, and a doubled
+  `1082_3d1082_3_…` prefix on 1,390 files). `tests/test_prepare.py` covers all four, because a
+  silent regex miss here would drop thousands of utterances with no error.
+- `convert(job)` reads one chunk with `soundfile`, mixes to mono, resamples to 16 kHz with
+  `librosa` (soxr_hq) **per file** because the source rate varies by recording, clips and
+  writes int16. Returns the duration and one of `ok / too_short / too_long`.
+- `main()` runs the conversions in a process pool, then writes `manifest_<split>.jsonl`
+  (path, seconds, text, normalised, speaker, region, transcriber, split, eval_ok) and
+  `summary.json` (utterances and hours kept per split, drop counts by reason). Filters are
+  applied in a fixed order and every drop is counted, so the hours reported are honest.
+- The `--docs` flag restricts to a few documents, which is how it was developed locally on
+  1225 and 1055 in five seconds; the cluster run uses `--workers 16`.
+
+Why no Hugging Face `Audio` column: see DECISIONS 2026-09-30. The manifest is the dataset;
+`train.py` will build a `Dataset` from it and decode in the collator.
+
+### Open at the end of Phase 3
+
+1. Audio is downloaded and verified (2026-09-30). Transfer the wrapper zip to the cluster,
+   extract with `scripts/extract_audio.py`, run `prepare.py` with `--workers 16`, paste
+   `summary.json` into `notes/DATA.md` (hours per split).
+2. Policy additions made without prior sign-off, veto possible: drop `<gap>` utterances;
+   interviewer utterances train-only; dev doc 1235 → 1261; manifest instead of HF `Audio`.
