@@ -35,3 +35,7 @@ hf_cache/
 
 # OS
 .DS_Store
+
+# SLURM logs
+logs/*
+!logs/.gitkeep
