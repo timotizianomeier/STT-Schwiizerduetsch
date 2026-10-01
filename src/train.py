@@ -119,7 +119,8 @@ def save_state(out: Path, name: str, model, opt, sched, step: int, best_cer: flo
 
 def evaluate(model, processor, rows, data_root, table, device, dtype, out: Path, step: int, n_samples: int):
     model.eval()
-    hyps_raw = transcribe(rows, data_root, model, processor, device, dtype, batch_size=16)
+    with torch.autocast("cuda", dtype=torch.bfloat16, enabled=device == "cuda"):
+        hyps_raw = transcribe(rows, data_root, model, processor, device, dtype, batch_size=16)
     model.train()
     refs = [r["text"] for r in rows]
     hyps = [normalise_hyp(h) for h in hyps_raw]
@@ -165,7 +166,10 @@ def main() -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     amp = device == "cuda"
     processor = WhisperProcessor.from_pretrained(args.model, language="german", task="transcribe")
-    base = WhisperForConditionalGeneration.from_pretrained(args.model)
+    # Explicit float32: large-v3 is *stored* in fp16 and transformers 5 loads the
+    # stored dtype by default. fp16 master weights + AdamW is numerically fragile;
+    # we keep fp32 weights and get the speed from bf16 autocast instead.
+    base = WhisperForConditionalGeneration.from_pretrained(args.model, torch_dtype=torch.float32)
     resume = (out / "last" / "trainer_state.pt").exists()
     if resume:
         model = PeftModel.from_pretrained(base, out / "last", is_trainable=True)

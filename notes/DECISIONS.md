@@ -163,3 +163,11 @@ Format: date — decision — why.
 - 2026-10-01 — A16 decodes large-v3 at RTF 0.11 (29 min for 3.8 h). Fine for
   a one-off baseline; in-training evals use a 200-utterance dev subsample
   for that reason.
+- 2026-10-01 — **Failed: first smoke job (294728) crashed at the step-0
+  eval** with "Input type (float) and bias type (Half)". Cause: the
+  whisper-large-v3 checkpoint is stored in fp16 and transformers 5 loads the
+  stored dtype by default; whisper-tiny (used for the laptop smoke test) is
+  stored in fp32, so the local test could not see it. Fix: load with
+  explicit `torch_dtype=torch.float32`, autocast to bf16 for forward passes.
+  Lesson: a tiny-model smoke test validates plumbing, not checkpoint-
+  specific properties; the cluster smoke job exists for exactly this.
