@@ -260,6 +260,72 @@ open the inner archive *inside* the outer one and extract members straight to di
 Why no Hugging Face `Audio` column: see DECISIONS 2026-09-30. The manifest is the dataset;
 `train.py` will build a `Dataset` from it and decode in the collator.
 
+---
+
+## Phases 4–5 tooling — evaluation and training scripts (written and smoke-tested locally)
+
+### How the cluster side fits
+
+```
+scripts/setup.slurm ──► scripts/cluster_setup.sh     env, extraction, parse, splits, prepare
+                                   │
+                                   ▼
+        /vol/bitbucket/ttm25/stt/data/processed/archimob16k/{wav16/, manifest_*.jsonl}
+                                   │
+scripts/baseline.slurm ──► src/evaluate.py           zero-shot large-v3 on test  (Phase 4)
+scripts/train.slurm    ──► src/train.py              LoRA fine-tune              (Phase 5)
+                                   │  writes runs/<name>/{last,best,samples,tb,metrics.jsonl}
+                                   ▼
+                          src/evaluate.py --adapter runs/<name>/best            (Phase 6)
+```
+
+`gpucluster2` is a 4-core submit VM and says so in its banner: nothing but `sbatch` runs there.
+
+### `src/evaluate.py` (core; one code path for baseline and fine-tuned model)
+
+- `load_rows` keeps `eval_ok` rows, optionally takes a fixed random subsample, sorts by duration.
+- `transcribe` batches audio through the feature extractor and calls `model.generate` with
+  `language="german"`, `task="transcribe"`, greedy. Whisper has no Swiss German token, so
+  "German" is the only honest choice; zero-shot it writes Standard German, which is the floor.
+- Scores are computed on `normalise_hyp(output)` vs the Dieth reference: lowercase, ß→ss,
+  punctuation and digits stripped. Digits are *not* spelled out, so "1917" costs errors.
+- Writes `predictions.jsonl`, `metrics.json` (overall, per speaker, per region, real-time
+  factor, count of empty outputs) and `examples.md` (REF / HYP as emitted / HYP as scored /
+  Standard German gloss). The example files are gitignored: the repo is public and the corpus
+  licence forbids redistribution.
+- `--adapter DIR` loads a LoRA adapter and merges it, which is all Phase 6 needs.
+
+### `src/train.py` (core; read the module docstring first)
+
+A plain PyTorch loop, about 200 lines, instead of `Seq2SeqTrainer`.
+- `ManifestDataset` / `Collator`: read a 16 kHz wav, compute log-mel features (always padded
+  to 30 s, that is how Whisper works), tokenise the Dieth text with the `<|de|><|transcribe|>
+  <|notimestamps|>` prefix, mask padding with −100, and strip the leading
+  `<|startoftranscript|>` because the model re-adds it when it shifts labels right.
+- `lora_config`: LoRA on the four attention projections; decoder rank 32 (alpha 64), encoder
+  rank 8 via `rank_pattern`. On whisper-tiny this is 2.3 % of parameters.
+- Loop: bf16 autocast on GPU, gradient accumulation, gradient clipping at 1.0, linear warm-up
+  then linear decay.
+- `evaluate()`: every `--eval-every` steps, transcribes a fixed dev subsample, logs
+  CER/WER/FlexWER, and writes `samples/step_XXXXXX.txt` with the **same ten utterances every
+  time** so you can watch individual sentences change. Step 0 is dumped too: that is the
+  zero-shot output for comparison.
+- `save_state()`: adapter + optimizer + scheduler + step + RNG into `last/`, written to a temp
+  directory and renamed, so a job killed mid-save cannot leave a broken checkpoint. Running the
+  same command again resumes. `best/` keeps the lowest dev CER.
+- Local smoke test (whisper-tiny, CPU, 30 steps on 0.7 h): loss 3.9 → 3.0, and the output
+  flips from "Ich glaube, also..." to lowercase dialect-looking strings. Says nothing about
+  quality; proves the plumbing.
+
+### `scripts/*.slurm` and `scripts/cluster_setup.sh` (plumbing)
+
+- `cluster_setup.sh`: idempotent seven-step setup; reuses the uv and HF caches already on
+  bitbucket. `setup.slurm` runs it on a compute node.
+- `baseline.slurm`: A16 partition (16 GB is plenty for fp16 inference).
+- `train.slurm`: A40 by default (48 GB fits large-v3 LoRA at batch 16 without gradient
+  checkpointing); `MAX_STEPS`, `RUN` and friends are environment variables so the smoke job and
+  the real run are the same script.
+
 ### Open at the end of Phase 3
 
 1. Audio is downloaded and verified (2026-09-30). Transfer the wrapper zip to the cluster,
