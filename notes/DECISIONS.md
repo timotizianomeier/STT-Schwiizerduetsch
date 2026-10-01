@@ -177,3 +177,10 @@ Format: date — decision — why.
   unchanged at 32). Alternatives not taken: gradient checkpointing (slower,
   needs a hook with a frozen base), dropping encoder LoRA (changes the
   experiment), A100 (not the smallest GPU that fits).
+- 2026-10-01 — **Smoke job 294732 succeeded** (third attempt): 300 steps,
+  dev CER 52.2 % → 21.6 %, output reads as written Swiss German from step
+  100. Per the brief, the long run is NOT launched until Timo has read the
+  samples. Proposed full run: 4,000 steps (≈2.2 epochs, ≈6.5 h on an A40).
+- 2026-10-01 — Known quirk: with warm-up 200 and linear decay to
+  `max_steps`, a 300-step run peaks at 7.5e-5 instead of 2e-4. Harmless for
+  a smoke test; irrelevant at 4,000 steps (peak ≈1.9e-4).

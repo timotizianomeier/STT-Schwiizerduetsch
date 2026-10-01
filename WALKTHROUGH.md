@@ -326,10 +326,20 @@ A plain PyTorch loop, about 200 lines, instead of `Seq2SeqTrainer`.
   checkpointing); `MAX_STEPS`, `RUN` and friends are environment variables so the smoke job and
   the real run are the same script.
 
-### Open at the end of Phase 3
+### What came out so far (Phases 4 and 5-smoke), and what to be able to say
 
-1. Audio is downloaded and verified (2026-09-30). Transfer the wrapper zip to the cluster,
-   extract with `scripts/extract_audio.py`, run `prepare.py` with `--workers 16`, paste
-   `summary.json` into `notes/DATA.md` (hours per split).
+- **Baseline** (zero-shot large-v3, test): CER 49 %, WER 90 %, FlexWER 57 %. It writes
+  Standard German. That is the floor and the proof the task is different.
+- **Smoke job** (300 steps, 16 % of an epoch): dev CER 52 % → 22 %. The register flips to
+  written dialect within the first 100 steps.
+- **Three things broke on the way and are logged in DECISIONS**: the submit node is not for
+  computing; large-v3 is stored in fp16 while tiny is fp32, so the laptop smoke test could not
+  catch a dtype crash; batch 16 does not fit an A40 without gradient checkpointing.
+- Numbers live in `notes/RESULTS.md`; example dumps are local-only files.
+
+### Open after the smoke job (2026-10-01)
+
+1. Timo reads `notes/baseline_examples.md` and `notes/smoke_examples.md`, then decides on
+   the full run (`RUN=v1 MAX_STEPS=4000 sbatch scripts/train.slurm`, about 6.5 h on an A40).
 2. Policy additions made without prior sign-off, veto possible: drop `<gap>` utterances;
    interviewer utterances train-only; dev doc 1235 → 1261; manifest instead of HF `Audio`.

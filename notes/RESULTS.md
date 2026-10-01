@@ -45,6 +45,47 @@ Reading it:
 gitignored: the corpus licence forbids redistribution and the repo is
 public).
 
-## Phase 5/6 — LoRA fine-tune
+## Phase 5 — smoke job (2026-10-01, job 294732)
 
-Pending.
+300 optimizer steps, A40, batch 8 × accumulation 4 (effective 32), LoRA
+decoder r=32 / encoder r=8 on q/k/v/out projections (23.6 M trainable
+parameters, 1.5 % of the model), bf16 autocast, 5 s/step, 31 minutes.
+300 steps × 32 = 9,600 utterances, i.e. **16 % of one epoch**. Peak learning
+rate only 7.5e-5 because warm-up (200) and decay (300) overlap in such a
+short schedule.
+
+Fixed 200-utterance dev subsample (docs 1055 ZH, 1142 BE, 1261 LU):
+
+| step | train loss | CER | WER | FlexWER |
+|---|---|---|---|---|
+| 0 (zero-shot) | — | 52.2 % | 92.5 % | 57.1 % |
+| 100 | 1.37 | 35.5 % | 79.8 % | 50.8 % |
+| 200 | 1.13 | 23.5 % | 63.2 % | 34.5 % |
+| 300 | 1.07 | **21.6 %** | 61.1 % | 33.1 % |
+
+What the samples show (same ten utterances at every step,
+`notes/smoke_examples.md`, local only):
+
+- By step 100 the output has switched register completely: lowercase, no
+  punctuation, dialect vowels and endings ("het", "nöd", "öis", "ghaa",
+  "jaar"). It no longer reads as Standard German.
+- By step 200–300 several utterances are exact or one character off
+  ("ä bi öis guet aber"; "zwänzg jaar rehabilitiert").
+- Remaining errors are of three kinds: spelling variants that are arguably
+  fine ("ez" for "iz", "häig" for "haig"); diacritics (graves mostly
+  dropped: "und" for "ùnd"); and genuine mishearings that also fooled the
+  zero-shot model ("marschinerweise" for "waarschiinlech").
+- One Standard German / English leak survives: "die things" for "de dings".
+
+Not a result yet: 200 dev utterances, 16 % of an epoch, and dev not test.
+But it answers the brief's question in the affirmative direction: a
+LoRA-tuned Whisper does produce text that reads like written Swiss German,
+and after 31 minutes it is already at WER ≈ 61 %, the level of the 2020
+Kaldi system.
+
+## Phase 5/6 — full run
+
+Pending Timo's go-ahead (brief: show smoke samples before anything long).
+Proposed: `RUN=v1 MAX_STEPS=4000 sbatch scripts/train.slurm` — about
+2.2 epochs, ~6.5 h on an A40 including evals, peak LR 2e-4.
+
