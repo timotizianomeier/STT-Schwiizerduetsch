@@ -155,3 +155,11 @@ Format: date — decision — why.
   laptop parse. Final dataset: train 52.19 h, dev 2.74 h, test 3.83 h.
   For scale: Nigmatulina & Kew trained on roughly the same corpus; this is
   small for ASR, which is why the base model is frozen and only LoRA trains.
+- 2026-10-01 — **Phase 4 baseline:** zero-shot whisper-large-v3 on test:
+  CER 49.2 %, WER 90.1 %, FlexWER 57.0 %. Emits Standard German as
+  predicted. Details and per-region table in `notes/RESULTS.md`. Observation
+  for later: FlexWER is lenient (function words overlap with attested Dieth
+  spellings), so success is judged on CER plus reading the samples.
+- 2026-10-01 — A16 decodes large-v3 at RTF 0.11 (29 min for 3.8 h). Fine for
+  a one-off baseline; in-training evals use a 200-utterance dev subsample
+  for that reason.
