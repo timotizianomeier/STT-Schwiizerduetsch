@@ -150,3 +150,8 @@ Format: date — decision — why.
   edited form"; 30–50 full reference transcripts per file is more than
   incidental quotation. `notes/*_examples.md` is gitignored; the files
   exist locally and on the cluster for reading. Metrics tables are committed.
+- 2026-10-01 — **Phase 3 closed.** Setup job 294712 (a16, 31 min): env,
+  extraction, parse, splits, prepare. Cluster parse is identical to the
+  laptop parse. Final dataset: train 52.19 h, dev 2.74 h, test 3.83 h.
+  For scale: Nigmatulina & Kew trained on roughly the same corpus; this is
+  small for ASR, which is why the base model is frozen and only LoRA trains.

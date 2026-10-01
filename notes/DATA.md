@@ -98,17 +98,20 @@ Overlap: `audio_pointer` is shared by two utterances when speech overlaps
 re-derived from the actual chunk files once the audio is on the cluster, so
 the usable count will drop further.
 
-## Splits (Phase 3, text side; hours pending audio)
+## Splits (Phase 3, final — built on the cluster 2026-10-01)
 
-| split | docs | utterances | words | share of words | regions |
-|---|---|---|---|---|---|
-| train | 36 | 60,833 (incl. interviewer) | 452,402 | 89.3% | all 15 |
-| dev | 3 (1055 ZH, 1142 BE, 1261 LU) | 2,725 | 22,826 | 4.5% | ZH, BE, LU |
-| test | 4 (1225 ZH, 1121 BE, 1195 LU, 1263 BS) | 4,291 | 31,223 | 6.2% | ZH, BE, LU, BS |
-| dropped | — | 14,535 | — | — | unusable + non-interviewee rows of held-out docs |
+| split | docs | utterances | hours | regions |
+|---|---|---|---|---|
+| train | 36 | 58,979 (incl. interviewer) | **52.19** | all 15 |
+| dev | 3 (1055 ZH, 1142 BE, 1261 LU) | 2,709 | **2.74** | ZH, BE, LU |
+| test | 4 (1225 ZH, 1121 BE, 1195 LU, 1263 BS) | 4,243 | **3.83** | ZH, BE, LU, BS |
 
-Rationale and rules in `src/splits.py`. Train still holds ZH 16.8k, AG
-13.6k, BS 5.9k, BE 5.3k, LU 3.5k interviewee utterances.
+58.8 h in total, mean utterance 3.2 s. Dropped at the audio stage: no wav
+516 (train 509, dev 7); shorter than 1 s 1,402 (train 1,345, dev 9, test
+48); longer than 30 s 0. Text-side drops are in the filter table above.
+Dataset on the cluster: `/vol/bitbucket/ttm25/stt/data/processed/archimob16k`
+(6.9 GB of 16 kHz wavs + `manifest_{train,dev,test}.jsonl` + `summary.json`).
+Rationale and rules in `src/splits.py`.
 
 ## FlexWER variant table
 
