@@ -171,3 +171,9 @@ Format: date — decision — why.
   explicit `torch_dtype=torch.float32`, autocast to bf16 for forward passes.
   Lesson: a tiny-model smoke test validates plumbing, not checkpoint-
   specific properties; the cluster smoke job exists for exactly this.
+- 2026-10-01 — **Failed: second smoke job (294729) OOM** on the A40 at
+  batch 16 (44.3 GB in use). I had estimated it would fit without gradient
+  checkpointing; wrong. Fix: batch 8 × accumulation 4 (effective batch
+  unchanged at 32). Alternatives not taken: gradient checkpointing (slower,
+  needs a hook with a frozen base), dropping encoder LoRA (changes the
+  experiment), A100 (not the smallest GPU that fits).

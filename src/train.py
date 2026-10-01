@@ -34,8 +34,9 @@ Checkpointing
 
 Not used: gradient checkpointing (brief lists it). With a frozen base it
 needs a hook to keep gradients flowing through the checkpointed encoder and
-it slows steps ~30%; LoRA on large-v3 fits comfortably in 48 GB without it.
-Flag it back on only if VRAM forces a smaller GPU.
+it slows steps ~30%. Without it, large-v3 at batch 16 does NOT fit in an A40
+(46 GB, measured); batch 8 x accumulation 4 does, and gives the same
+effective batch, so that is the default in scripts/train.slurm.
 """
 
 from __future__ import annotations
