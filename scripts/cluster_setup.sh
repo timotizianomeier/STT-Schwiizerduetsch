@@ -17,10 +17,12 @@ RAW=$STT/data/raw
 PROC=$STT/data/processed
 WORKERS=${WORKERS:-4}
 
-export UV_CACHE_DIR=$BASE/.cache/uv
-export UV_PYTHON_INSTALL_DIR=$BASE/.cache/uv-python
-export HF_HOME=$BASE/.cache/hf
-export PATH=$BASE/bin:$PATH
+# Reuse the caches that already exist on bitbucket (discovered 2026-10-01):
+# uv-cache (4 GB of wheels from earlier projects) and hf (model hub cache).
+export UV_CACHE_DIR=$BASE/uv-cache
+export UV_PYTHON_INSTALL_DIR=$BASE/uv-python
+export HF_HOME=$BASE/hf
+export PATH=$HOME/.local/bin:$BASE/bin:$PATH      # uv lives in ~/.local/bin
 mkdir -p "$BASE/bin" "$UV_CACHE_DIR" "$HF_HOME" "$PROC"
 
 step() { echo; echo "=== $* ==="; }
