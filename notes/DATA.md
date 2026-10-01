@@ -115,29 +115,33 @@ Rationale and rules in `src/splits.py`.
 
 ## FlexWER variant table
 
-`src/metrics.py` builds `dieth_to_norm.json` from all usable utterances:
-43,815 Dieth spellings, 28,713 normalised forms, 3,914 spellings that map
-to more than one normalised form (homographs like *me* = "man"/"wenn").
-Largest variant sets: *haben* 136, *eigentlich* 81, *können* 76, *nachher*
-73, *wenn* 70. Slightly smaller than Kew's table (147/93/82) because we
-drop unusable utterances first.
+`src/metrics.py` builds `dieth_to_norm.json` from all usable utterances.
+After the v2 fold: 42,143 spellings, 28,713 normalised forms, 4,023
+spellings that map to more than one normalised form (homographs like *me*
+= "man"/"wenn"). Largest variant sets: *haben* 129, *können* 67,
+*eigentlich* 67. (Before the fold: 43,815 spellings, *haben* 136.) Token
+ambiguity is 93.4 % after the fold versus 94.0 % before: accents were a
+small part of the variation.
 
-## Character table (Dieth layer)
+## Character table (Dieth layer) and the fold
 
-Text is already lowercased and punctuation-free. Full table in
-`notes/char_table.txt`. Summary:
+Raw text is already lowercased and punctuation-free. Full raw table in
+`notes/char_table.txt`. Since 2026-10-01 (policy v2) all accents except the
+umlauts are folded, so the training alphabet is `a–z ä ö ü` + space
+(27 symbols actually occur; q, x, y do not).
 
-| class | chars | verdict |
+| class | raw chars (share / count) | v2 treatment |
 |---|---|---|
 | ASCII letters | a–z | keep |
-| Umlauts | ä (2.87%), ü (1.18%), ö (0.80%) | semantically essential, keep |
-| Grave = open vowel quality (Dieth) | ì (0.47%), è (0.35%), ò (0.27%), ù (0.17%), ǜ (0.07%) | meaningful in Dieth, keep for v1 |
-| Tilde = nasal vowel | õ (489), ã (104), ẽ (70), ĩ (1) | meaningful but rare; keep |
-| Acute | é (114), ó (8), á (5), í (3), ú (2) | mostly loanwords; keep all as-is (too rare to matter) |
-| à | 8 | grave on a, same convention as ì/è/ò/ù; keep |
-| Combining marks | U+0300 (759), U+0301 (1 after NFC) | NFC-normalise; ö̀ stays 2 codepoints (no precomposed form); U+0301 dropped |
-| `*` | 1,536 | anonymisation mask → drop utterances |
-| `()` | 5 | artefacts → strip/drop |
+| Umlauts | ä (2.87%), ü (1.18%), ö (0.80%) | keep — different letters |
+| Grave = open vowel (Dieth) | ì (0.47%), è (0.35%), ò (0.27%), ù (0.17%), ǜ (0.07%), à (8) | fold to i e o u ü a |
+| Combining grave on ö | U+0300 (759) | drop the mark, keep ö |
+| Tilde = nasal vowel | õ (489), ã (104), ẽ (70), ĩ (1) | fold |
+| Acute | é (114), ó (8), á (5), í (3), ú (2), U+0301 (1) | fold |
+| `*` | 1,536 | anonymisation mask → utterance dropped |
+| `()` | 5 | stripped |
+
+The fold changes the text of 19.5 % of usable utterances.
 
 ## Ambiguity of Dieth spellings (the number that matters)
 

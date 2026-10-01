@@ -14,13 +14,17 @@ attested spelling of the same word.
 `openai/whisper-large-v3`, language forced to German, greedy decoding.
 Job 294727, A16, real-time factor 0.11.
 
+Scored against the v2 references (accents folded, 2026-10-01; re-scored
+from the saved outputs with `src/rescore.py`). Against the original v1
+references the overall figures were 49.2 / 90.1 / 57.0.
+
 | | CER | WER | FlexWER | n |
 |---|---|---|---|---|
-| **all** | **49.2 %** | 90.1 % | 57.0 % | 4,243 |
-| ZH (1225) | 44.7 % | 84.0 % | 49.9 % | 850 |
-| BS (1263) | 45.1 % | 87.8 % | 56.8 % | 1,377 |
-| BE (1121) | 50.2 % | 91.6 % | 56.8 % | 996 |
-| LU (1195) | 56.6 % | 96.3 % | 63.5 % | 1,020 |
+| **all** | **48.7 %** | 89.3 % | 56.7 % | 4,243 |
+| ZH (1225) | 44.7 % | 84.0 % | 49.8 % | 850 |
+| BS (1263) | 45.1 % | 87.8 % | 56.7 % | 1,377 |
+| BE (1121) | 50.2 % | 91.6 % | 56.7 % | 996 |
+| LU (1195) | 54.6 % | 93.4 % | 62.8 % | 1,020 |
 
 Reading it:
 
@@ -45,7 +49,7 @@ Reading it:
 gitignored: the corpus licence forbids redistribution and the repo is
 public).
 
-## Phase 5 — smoke job (2026-10-01, job 294732)
+## Phase 5 — smoke job (2026-10-01, job 294732; v1 targets, accents kept)
 
 300 optimizer steps, A40, batch 8 × accumulation 4 (effective 32), LoRA
 decoder r=32 / encoder r=8 on q/k/v/out projections (23.6 M trainable

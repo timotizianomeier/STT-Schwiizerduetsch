@@ -184,3 +184,31 @@ Format: date — decision — why.
 - 2026-10-01 — Known quirk: with warm-up 200 and linear decay to
   `max_steps`, a 300-step run peaks at 7.5e-5 instead of 2e-4. Harmless for
   a smoke test; irrelevant at 4,000 steps (peak ≈1.9e-4).
+- 2026-10-01 — **Orthography policy v2 (Timo, after reading the smoke
+  samples): fold every accent except the umlauts.** Graves (à ì è ò ù ǜ, ö̀),
+  tildes (õ ã ẽ ĩ) and acutes lose their mark; ä ö ü stay. Target alphabet is
+  now a–z + ä ö ü + space. Reason: nobody types the Dieth graves, annotators
+  apply them inconsistently (they are concentrated in a few transcribers'
+  documents), and the smoke model dropped most of them and paid CER for it.
+  This is a **deliberate departure from strict Dieth** and from the v1
+  policy signed off 2026-09-29; the output is "written Swiss German as
+  people type it", still not Standard German. Effect: text of 19.5 % of
+  usable utterances changes; Dieth spellings 43,815 → 42,143; token
+  ambiguity 94.0 % → 93.4 % (so the fold removes little of the ambiguity —
+  most of it is real variation, not accents). Hypotheses get the same fold
+  in `normalise_hyp`, so old and new models are scored on equal terms.
+- 2026-10-01 — Baseline re-scored against v2 references without re-decoding
+  (`src/rescore.py`): CER 49.2 → 48.7, WER 90.1 → 89.3, FlexWER 57.0 → 56.7.
+  Luzern moves most (Peters' transcripts carry many graves). Smoke-job
+  numbers (294732) were measured against v1 targets and are kept as such.
+- 2026-10-01 — **Fillers stay stripped** (Timo asked whether this could hurt
+  quality). Evidence from the XML: 12,928 fillers = 2.2 per 100 words, in
+  13.9 % of utterances. 90 % are forms that are never words (eh, ää, ehm,
+  ee, äwr, [lacht]). Only "ä" (1,034 as filler vs 1,285 as a word) and "e"
+  (248 vs 4,563) are ambiguous, so the realistic cost is an occasional
+  dropped "ä"/"e". Keeping fillers as targets would instead make the model
+  transcribe sounds Whisper was pretrained to omit and that transcribers
+  mark inconsistently. To verify after the full run: deletion rate of "e"
+  and "ä" in the error analysis.
+- 2026-10-01 — `prepare.py` now skips conversion when the 16 kHz file
+  exists, so a text-policy change rebuilds the manifests in about a minute.

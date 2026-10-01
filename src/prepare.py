@@ -62,6 +62,8 @@ def wav_index(audio_root: Path) -> dict[str, Path]:
 def convert(job: tuple[str, str, str]) -> tuple[str, float, str]:
     """Read, mono-mix, resample, write int16. Returns (utt_id, seconds, status)."""
     utt_id, src, dst = job
+    if Path(dst).exists():                          # text-only rebuild: audio already converted
+        return utt_id, sf.info(dst).duration, "ok"
     audio, sr = sf.read(src, dtype="float32", always_2d=True)
     audio = audio.mean(axis=1)                      # mono (all files are, but be safe)
     seconds = len(audio) / sr

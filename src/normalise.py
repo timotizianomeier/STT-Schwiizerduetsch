@@ -1,20 +1,18 @@
-"""Orthography handling for the ArchiMob Dieth layer (Phase 2 policy).
+"""Orthography handling for the ArchiMob Dieth layer.
 
-Policy signed off 2026-09-29 (see notes/DECISIONS.md):
+Policy v2, decided by Timo on 2026-10-01 after reading the smoke samples
+(v1, signed off 2026-09-29, kept all Dieth diacritics; see DECISIONS.md):
 
-  * Unicode NFC. The corpus contains 759 decomposed combining graves
-    (U+0300), e.g. "schpö̀ö̀ter". NFC composes what it can (e.g. "u" + grave
-    -> "ù") but there is NO precomposed "ö with grave" in Unicode, so "ö̀"
-    stays a two-codepoint sequence after NFC. That is fine for a byte-level
-    BPE tokenizer; it just means CER counts it as two characters.
-  * Keep umlauts (ä ö ü), Dieth graves (ì è ò ù ǜ = open vowel quality) and
-    tildes (õ ã ẽ ĩ = nasal vowel). They carry meaning in Dieth.
-  * Keep the ~130 acute-accented letters (é ó á í ú) as they are. They are
-    mostly loanwords; too rare to matter, and folding would be a guess.
-  * Drop the single stray COMBINING ACUTE (U+0301, "kapä́l" in d1207-u231):
-    annotator noise, no Dieth meaning.
-  * "à" (8 tokens, e.g. "jà", "wàr") is a grave on a: same open-vowel
-    convention as ì/è/ò/ù, just rare. Kept.
+  * **Fold the Dieth phonetic diacritics to plain letters.** Grave (open
+    vowel: à ì è ò ù ǜ, and ö + combining grave), tilde (nasal: õ ã ẽ ĩ) and
+    the rare acutes (é ó á í ú) all lose their mark. Umlauts ä ö ü stay:
+    they are different letters, not annotations. The target alphabet is
+    therefore exactly a-z + ä ö ü + space — what a Swiss German speaker
+    actually types. Why: nobody writes the graves in practice, transcribers
+    apply them inconsistently, and the smoke model dropped most of them,
+    paying CER for a distinction the end use does not want.
+    How: decompose (NFD), drop the combining grave/acute/tilde, recompose
+    (NFC). The diaeresis is a different combining mark and survives.
   * Lowercase (the corpus already is; enforced anyway).
   * Strip the 5 stray parentheses.
   * Strip Kaldi-style meta tokens (<SPOKEN_NOISE>, <SIL_WORD>, <NOISE>) if
@@ -34,25 +32,25 @@ import unicodedata
 META_TOKEN_RE = re.compile(r"<[A-Z_]+>")
 WS_RE = re.compile(r"\s+")
 
-# Every character we expect to see in a normalised Dieth string. Anything
-# outside this set is reported by `unexpected_chars` so it can be looked at
-# instead of silently becoming a training target.
-BASE = set("abcdefghijklmnopqrstuvwxyz")
-UMLAUT = set("äöü")
-GRAVE = set("àìèòùǜ")          # ǜ = U+01DC, precomposed ü-with-grave
-TILDE = set("õãẽĩ")
-ACUTE = set("éóáíú")
-COMBINING_GRAVE = "\u0300"     # survives NFC only on ö (no precomposed form)
-COMBINING_ACUTE = "\u0301"     # 1 occurrence in the corpus, removed
-ALLOWED = BASE | UMLAUT | GRAVE | TILDE | ACUTE | {COMBINING_GRAVE, " "}
+# The whole target alphabet after folding. `unexpected_chars` reports anything
+# else so a new character can never silently become a training target.
+ALLOWED = set("abcdefghijklmnopqrstuvwxyzäöü ")
+
+# Combining marks removed by the fold: grave, acute, tilde. NOT U+0308
+# (diaeresis), which is what makes ä ö ü.
+_FOLD = {"\u0300", "\u0301", "\u0303"}
+
+
+def fold_diacritics(text: str) -> str:
+    """ì -> i, ǜ -> ü, õ -> o, é -> e ... while keeping ä ö ü intact."""
+    decomposed = unicodedata.normalize("NFD", text)
+    return unicodedata.normalize("NFC", "".join(c for c in decomposed if c not in _FOLD))
 
 
 def normalise_dieth(text: str) -> str:
     """Normalise one Dieth utterance string according to the v1 policy."""
     text = META_TOKEN_RE.sub(" ", text)   # before lower(): the tokens are upper-case
-    text = unicodedata.normalize("NFC", text)
-    text = text.replace(COMBINING_ACUTE, "")
-    text = text.lower()
+    text = fold_diacritics(text.lower())
     text = text.replace("(", "").replace(")", "")
     text = WS_RE.sub(" ", text).strip()
     return text
@@ -83,7 +81,7 @@ def usable(row: dict) -> tuple[bool, str]:
 
 # --- hypothesis side -------------------------------------------------------
 
-_NOT_LETTER_RE = re.compile(r"[^\w\s\u0300]|[\d_]")
+_NOT_LETTER_RE = re.compile(r"[^\w\s]|[\d_]")
 
 
 def normalise_hyp(text: str) -> str:
@@ -92,14 +90,14 @@ def normalise_hyp(text: str) -> str:
 
     Whisper emits capitals, punctuation and ß; none of those exist in the
     references, and counting them as errors would say nothing about dialect.
-    So: NFC, lowercase, ß -> ss (Swiss usage), drop every character that is
-    not a letter, whitespace or the combining grave, collapse whitespace.
+    So: lowercase, ß -> ss (Swiss usage), the same diacritic fold as the
+    references, drop every character that is not a letter or whitespace,
+    collapse whitespace.
 
     Deliberately NOT done: spelling out digits ("1917"). The references spell
     numbers as words; a model that emits digits is penalised, and that is a
     real difference in output style worth seeing in the error rate.
     """
-    text = unicodedata.normalize("NFC", text).lower().replace("ß", "ss")
-    text = text.replace(COMBINING_ACUTE, "")
+    text = fold_diacritics(text.lower().replace("ß", "ss"))   # same fold as the references
     text = _NOT_LETTER_RE.sub(" ", text)
     return WS_RE.sub(" ", text).strip()

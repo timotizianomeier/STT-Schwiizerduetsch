@@ -133,18 +133,20 @@ uses. Keep it; it documents where the 94 % number comes from.
 
 Two functions, and a character whitelist.
 
-- `normalise_dieth(text)` applies the signed-off policy to one string, in this order:
+- `normalise_dieth(text)` applies the policy to one string, in this order:
   1. strip Kaldi meta tokens (`<SPOKEN_NOISE>` etc.) — must happen *before* lowercasing,
      which is the bug the tests caught on the first run;
-  2. Unicode **NFC**: the corpus has 759 decomposed combining graves (`u` + U+0300); NFC
-     composes them to `ù`. Exception worth knowing: there is no precomposed "ö with grave",
-     so `ö̀` stays two codepoints. Harmless for a byte-level tokenizer, but CER counts it as
-     two characters;
-  3. drop the single stray combining acute;
-  4. lowercase, strip the five stray parentheses, collapse whitespace.
-- `ALLOWED` is the set of characters the policy accounts for: a–z, umlauts, the Dieth graves
-  `à ì è ò ù ǜ` (open vowel), tildes `õ ã ẽ ĩ` (nasal), the rare acutes. `unexpected_chars`
-  reports anything else so a new character can never silently become a training target.
+  2. lowercase;
+  3. `fold_diacritics`: decompose to base letter + combining marks (Unicode NFD), drop the
+     grave, acute and tilde marks, recompose (NFC). The diaeresis is a different mark, so
+     ä ö ü survive, and `ǜ` or `ö` + grave become plain `ü` / `ö`. **This is policy v2**
+     (Timo, 2026-10-01): v1 kept the Dieth graves and tildes; the smoke samples showed the
+     model dropping them and nobody types them anyway;
+  4. strip the five stray parentheses, collapse whitespace.
+- `ALLOWED` is the closed target alphabet: a–z, ä ö ü, space. `unexpected_chars` reports
+  anything else so a new character can never silently become a training target.
+- `normalise_hyp(text)` does the same to model output plus ß→ss and punctuation/digit
+  removal, so references and hypotheses are always compared in the same alphabet.
 - `usable(row)` decides whether an utterance is a valid target from its structural flags,
   in a fixed order so drop reasons can be tallied: anonymised (`***` masks) → overlap (shares
   its audio chunk with another utterance) → gap (unintelligible speech with no text) → empty.
