@@ -133,3 +133,20 @@ Format: date — decision — why.
 - 2026-09-30 — Sample rate is not constant across recordings (48 kHz and
   44.1 kHz observed). Resampling is per file with soxr_hq, never a fixed
   ratio.
+- 2026-10-01 — **Cluster rule discovered:** gpucluster2 is a 4-core submit
+  VM, "solely for submitting sbatch jobs". The plan to run setup there was
+  wrong; everything (env install, extraction, dataset build) now runs as a
+  batch job (`scripts/setup.slurm`). The scheduler assigns 1 GPU to every
+  job on `a16` whether requested or not. Existing bitbucket caches
+  (`uv-cache`, `hf`) and `~/.local/bin/uv` are reused.
+- 2026-10-01 — `src/evaluate.py` is one code path for the zero-shot baseline
+  and the fine-tuned model (optional `--adapter`), so the two results differ
+  only in the weights. Hypotheses are normalised with `normalise_hyp`
+  (lowercase, ß→ss, strip punctuation and digits) before scoring; digits are
+  not spelled out, so a model that writes "1917" is penalised on purpose.
+- 2026-10-01 — **Example dumps are not committed** (deviation from brief
+  Phase 4/6 file locations in spirit, not in content). The GitHub repo is
+  public and the LaRS contract forbids passing on the data "in original or
+  edited form"; 30–50 full reference transcripts per file is more than
+  incidental quotation. `notes/*_examples.md` is gitignored; the files
+  exist locally and on the cluster for reading. Metrics tables are committed.

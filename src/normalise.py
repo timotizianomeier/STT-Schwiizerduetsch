@@ -79,3 +79,27 @@ def usable(row: dict) -> tuple[bool, str]:
     if not row["text"]:
         return False, "empty"             # nothing left after stripping markers
     return True, "ok"
+
+
+# --- hypothesis side -------------------------------------------------------
+
+_NOT_LETTER_RE = re.compile(r"[^\w\s\u0300]|[\d_]")
+
+
+def normalise_hyp(text: str) -> str:
+    """Normalise a model output so it is scored on the same footing as the
+    references (which are lowercase, punctuation-free Dieth).
+
+    Whisper emits capitals, punctuation and ß; none of those exist in the
+    references, and counting them as errors would say nothing about dialect.
+    So: NFC, lowercase, ß -> ss (Swiss usage), drop every character that is
+    not a letter, whitespace or the combining grave, collapse whitespace.
+
+    Deliberately NOT done: spelling out digits ("1917"). The references spell
+    numbers as words; a model that emits digits is penalised, and that is a
+    real difference in output style worth seeing in the error rate.
+    """
+    text = unicodedata.normalize("NFC", text).lower().replace("ß", "ss")
+    text = text.replace(COMBINING_ACUTE, "")
+    text = _NOT_LETTER_RE.sub(" ", text)
+    return WS_RE.sub(" ", text).strip()

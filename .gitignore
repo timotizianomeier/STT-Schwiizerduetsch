@@ -39,3 +39,8 @@ hf_cache/
 # SLURM logs
 logs/*
 !logs/.gitkeep
+
+# Example dumps quote corpus transcripts; the LaRS contract forbids
+# redistribution, and this repo is public. Read them locally.
+notes/*_examples.md
+notes/RESULTS_examples.md

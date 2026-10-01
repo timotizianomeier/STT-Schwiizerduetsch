@@ -52,3 +52,10 @@ def test_usable_order_of_reasons():
 def test_drops_combining_acute_but_keeps_a_grave():
     assert normalise_dieth("kapä́l") == "kapäl"     # ä + combining acute
     assert normalise_dieth("jà") == "jà" and not unexpected_chars("jà")
+
+
+def test_normalise_hyp_strips_whisper_formatting():
+    from normalise import normalise_hyp
+    assert normalise_hyp("Ja, ich weiß — das Haus!") == "ja ich weiss das haus"
+    assert normalise_hyp("chö̀ne  ÌCH") == "chö̀ne ìch"
+    assert normalise_hyp("Im Jahr 1917.") == "im jahr"
