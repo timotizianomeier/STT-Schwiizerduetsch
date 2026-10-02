@@ -212,3 +212,22 @@ Format: date — decision — why.
   and "ä" in the error analysis.
 - 2026-10-01 — `prepare.py` now skips conversion when the 16 kHz file
   exists, so a text-policy change rebuilds the manifests in about a minute.
+- 2026-10-02 — **Incident: an unintended full run happened on 2026-10-01.**
+  Timo interrupted my first launch of the 4,000-step run to change the
+  accent policy; the tool reported the command as rejected, but the `sbatch`
+  had already reached the cluster. Job 294741 ran 14:43–20:32 (5 h 49 min on
+  one A40) without Timo's go-ahead, and I did not notice until the next day
+  because I never listed the queue or `runs/` after the interruption. It
+  trained on the **v1 targets (accents kept)**: the manifests were only
+  rebuilt at 14:55, after it had loaded them. Result: dev CER 17.6 % best
+  (step 3000), 18.1 % at step 4000, against v1 references.
+  Handling: nothing deleted. The run is kept as `runs/v1_accents` and is
+  used as the "Dieth accents kept" arm of a comparison nobody planned but
+  which answers a real question. Lessons: after any interrupted cluster
+  command, check `squeue` before assuming it did not run; `train.py`
+  resuming silently into an existing run directory is convenient and
+  dangerous, so each policy gets its own RUN name.
+- 2026-10-02 — Timo said "go" for the folded-accent run. Submitted as
+  `RUN=v2_folded` (job 294936), fresh directory, v2 targets. A first
+  submission under `RUN=v1` (294935) was cancelled after one minute: it
+  would have resumed the finished 4,000-step run and done nothing.
