@@ -87,9 +87,47 @@ LoRA-tuned Whisper does produce text that reads like written Swiss German,
 and after 31 minutes it is already at WER ≈ 61 %, the level of the 2020
 Kaldi system.
 
-## Phase 5/6 — full run
+## Phase 5/6 — full runs
 
-Pending Timo's go-ahead (brief: show smoke samples before anything long).
-Proposed: `RUN=v1 MAX_STEPS=4000 sbatch scripts/train.slurm` — about
-2.2 epochs, ~6.5 h on an A40 including evals, peak LR 2e-4.
+Two 4,000-step runs exist (≈2.2 epochs, A40, batch 8 × 4, LoRA decoder r=32
+/ encoder r=8, peak LR 2e-4). They differ only in the training targets:
 
+- `v1_accents` (job 294741, 2026-10-01): Dieth accents kept. Unintended
+  run, see DECISIONS 2026-10-02. Best dev checkpoint at step 3000.
+- `v2_folded` (job 294936, 2026-10-02): accents folded, the approved policy.
+
+All test numbers below are scored the same way: references and hypotheses
+both folded (policy v2), so the two models are comparable.
+
+### Test set (4,243 utterances, 3.83 h)
+
+| model | CER | WER | FlexWER |
+|---|---|---|---|
+| zero-shot large-v3 | 48.7 % | 89.3 % | 56.7 % |
+| `v1_accents` best | **14.6 %** | 44.5 % | 24.5 % |
+| `v2_folded` best | pending (eval job 294938 runs after training) | | |
+
+`v1_accents` per region:
+
+| | CER | WER | FlexWER | n |
+|---|---|---|---|---|
+| ZH (1225) | 11.1 % | 37.6 % | 18.4 % | 850 |
+| BE (1121) | 13.7 % | 44.2 % | 22.3 % | 996 |
+| BS (1263) | 14.7 % | 42.7 % | 27.2 % | 1,377 |
+| LU (1195) | 18.2 % | 52.5 % | 29.1 % | 1,020 |
+
+Reading it: CER falls from 48.7 % to 14.6 % on speakers the model never
+heard; WER 44.5 % is well below the ~60 % of the 2020 Kaldi system (on an
+easier, non-speaker-disjoint split). Zürich is best, Luzern worst, the same
+ordering as zero-shot. No empty outputs. 50 examples:
+`notes/v1_accents_test_examples.md` (local only).
+
+### Dev subsample during `v2_folded` training (200 utterances, v2 targets)
+
+| step | 0 | 250 | 500 | 1000 | 1500 | 2000 |
+|---|---|---|---|---|---|---|
+| CER | 50.7 % | 18.9 % | 17.3 % | 16.0 % | 16.1 % | 15.9 % |
+| WER | 89.5 % | 52.1 % | 46.4 % | 45.2 % | 45.6 % | 44.7 % |
+
+Most of the gain arrives in the first 250 steps (a quarter of an epoch);
+after step 1000 the curve is nearly flat.
