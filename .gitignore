@@ -47,3 +47,6 @@ notes/RESULTS_examples.md
 
 # local-only review page (contains corpus text)
 notes/*_review.html
+
+# own test recordings (personal voice data + transcripts)
+data/own_recordings/
