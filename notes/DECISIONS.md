@@ -244,3 +244,12 @@ Format: date — decision — why.
 - 2026-11-05 — Tooling notes: `sacct` fails on the cluster (accounting DB
   refuses connections), use `squeue` and the files in `runs/`. SSH needs
   `ssh-add ~/.ssh/id_rsa` once per login; the agent is empty after a reboot.
+- 2026-11-05 — **v1 declared done (Timo).** Human review of 50 random test
+  utterances: 47 written Swiss German, 3 "mostly", none Standard German;
+  mean quality 3.46/5, ZH best (3.90). Main complaint: crucial words cut or
+  misheard. Open, not pursued in v1: mild word-level drift to Standard
+  German forms in BS and LU (*dr*→*de*/*der*, *sin*→*sind*, inserted *ja*);
+  Luzern is the weakest region; only one speaker per region, so region
+  effects are speaker effects. Candidate v2 work: more training speakers,
+  a Standard German form penalty or constrained decoding, per-speaker
+  variation.

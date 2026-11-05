@@ -184,3 +184,35 @@ throughout.
    half (40 vs 76) and mostly written as "e". "ä" is 0.2 % of test tokens,
    so the effect on CER is negligible. Alignment is word-level `difflib`,
    so "replaced" counts are inflated by mis-heard phrases.
+
+### Human review of the 50 random examples (Timo, 2026-11-05)
+
+Ratings in `notes/v2_folded_review.md` (IDs and tags only). Written
+Swiss German: **47 yes, 3 "mostly", 0 "reads like Standard German"**.
+Quality (1–5): mean 3.46; 5 ×6, 4 ×17, 3 ×21, 2 ×6, 1 ×0. By region:
+ZH 3.90 (n=10), BS 3.56 (16), LU 3.23 (13), BE 3.18 (11); small samples,
+but ZH-best and LU-weak match the CER ordering. Tags (an utterance can
+have several): fine variant spelling 20, wrong word 16, Standard German
+leak 7, garbled 7, dropped words 6, vowel length only 3, hallucinated
+words 2, wrong dialect for region 2 (both LU). 23 of 50 had no tag beyond
+variant spelling or vowel length.
+
+Timo's verdict: mostly Swiss German, but crucial words are sometimes cut
+or misheard so the meaning changes; dialect differences make the task
+harder; LU sometimes sounded off, ZH matters most; the `wenn` substitution
+was not noticed. **Decision: call v1 done.**
+
+Re-check of the leak tag (7 utterances, 14 % of the sample). They are
+word-level Standard German forms inside otherwise dialectal sentences:
+*in der*, *der bericht*, *nazionalsozialistische*, *sind ja die andere*,
+*den brunnen*. Over all 4,243 utterances the model produces only slightly
+more Standard German marker tokens than the references contain (der, den,
+dem, wenn, doch, mich, wir, eine, einen, nicht, auch, habe, haben, hatte,
+wurde, wurden: 363 vs 332, +9 %), and the references themselves use *der*
+and *den* where annotators did. The drift is concentrated in BS (+13) and
+LU (+18); ZH (+1) and BE (−1) are flat. Specific shifts: *dr* 62 → 21 and
+*sin* 31 → 15 (the model prefers *de*/*der* and *sind*), *ja* 123 → 216
+(it inserts the particle), *de* +128. So the earlier statement that
+collapse into Standard German is "rare" holds at sentence level, but a
+mild word-level pull toward Standard German forms exists, mainly in BS and
+LU. Not addressed in v1.
