@@ -5,8 +5,14 @@ orthography)** as the output, not Standard German. A LoRA fine-tune of Whisper
 on the ArchiMob corpus. See `notes/BRIEF.md` for the goal and
 `notes/DECISIONS.md` for every non-obvious choice made along the way.
 
-Status: v1 in progress. Phases 0–2 done (repo, cluster recon, orthography
-analysis); dataset construction and training pending audio access.
+Status: **v1 done** (2026-11-05). Whisper large-v3 + LoRA, trained on 52 h of
+ArchiMob Dieth text, scored on four held-out speakers (ZH, BE, BS, LU): CER
+48.7 % → 14.5 %, WER 89.3 % → 43.9 %, FlexWER 56.7 % → 24.0 %. The output
+reads as written Swiss German, not Standard German; the weakest points are
+misheard words and a mild pull toward Standard German word forms in BS and
+LU. Details in `notes/RESULTS.md`, ideas for next steps in
+`notes/V2_WISHLIST.md`. Model weights are not published (derived from
+licensed data).
 
 ## Layout
 
