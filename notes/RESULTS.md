@@ -105,7 +105,10 @@ both folded (policy v2), so the two models are comparable.
 |---|---|---|---|
 | zero-shot large-v3 | 48.7 % | 89.3 % | 56.7 % |
 | `v1_accents` best | **14.6 %** | 44.5 % | 24.5 % |
-| `v2_folded` best | pending (eval job 294938 runs after training) | | |
+| `v2_folded` best (step 3500) | **14.5 %** | 43.9 % | 24.0 % |
+
+The two fine-tuned models are indistinguishable (0.1 CER points): folding
+the accents cost nothing. `v2_folded` is the final model.
 
 `v1_accents` per region:
 
@@ -130,4 +133,54 @@ ordering as zero-shot. No empty outputs. 50 examples:
 | WER | 89.5 % | 52.1 % | 46.4 % | 45.2 % | 45.6 % | 44.7 % |
 
 Most of the gain arrives in the first 250 steps (a quarter of an epoch);
-after step 1000 the curve is nearly flat.
+after step 1000 the curve is nearly flat. Full curve (CER, %): 250: 18.9,
+1000: 16.0, 2000: 15.9, 3000: 15.6, **3500: 15.2** (best), 4000: 15.8.
+
+### `v2_folded` on test, in detail (eval job 294938, RTF 0.12, 0 empty outputs)
+
+| | CER | WER | FlexWER | n |
+|---|---|---|---|---|
+| all | **14.5 %** | 43.9 % | 24.0 % | 4,243 |
+| ZH (1225) | 11.2 % | 38.2 % | 17.4 % | 850 |
+| BE (1121) | 13.6 % | 43.4 % | 21.8 % | 996 |
+| BS (1263) | 14.4 % | 41.0 % | 26.7 % | 1,377 |
+| LU (1195) | 18.1 % | 52.0 % | 29.1 % | 1,020 |
+
+One speaker per region, so region and speaker are confounded (per-speaker
+and per-region tables are identical).
+
+Per-utterance CER distribution: median 12.0 %, mean 15.0 %; 438 utterances
+(10 %) exact matches; 10.6 % above 30 % CER; 2.0 % above 50 %; 6 (0.1 %)
+above 100 %. The overall figure is carried by many small errors, not a few
+disasters.
+
+50 random test utterances (seed 0): `notes/v2_folded_test_examples.md`
+(local only). Read on 2026-11-05: the output reads as written Swiss German
+throughout.
+
+### Failure analysis (`v2_folded`, all 4,243 test utterances)
+
+1. **Collapse into Standard German: rare and word-level.** No full
+   Standard German sentences among the worst utterances. Function words
+   such as *ich*, *mit*, *sind* are also Swiss German and match the
+   references. The one clear shift is *wenn* (4 in references as `wenn`,
+   34 in output; references mostly write *wen*/*wänn*). Many of those are
+   legitimate variants; a few are the model substituting the Standard
+   German conjunction for a word it did not catch ("da het me" → "wenn
+   me"). Smaller shifts: *doch* 30 → 50, *mich* 12 → 22, *wir* 0 → 4.
+2. **Hallucination on very short clips.** The six utterances above 100 %
+   CER have 1–12 character references and the model adds words ("jä" →
+   "jä sii wi si"; "mietwonig" → "wie wie wie d woonig").
+3. **Fluent but wrong on hard audio.** Worst long utterances are mostly
+   Luzern and Basel; the model writes plausible dialect that does not match
+   ("isch e schwären aschmatigger gsi" → "süsch wäär en aschmatiker gseend
+   früer"), and sometimes drops most of an utterance.
+4. **Vowel length and variant spelling dominate the small errors**
+   ("schöön hööch" vs "schön höch", *mer*/*me*, *lüüt*/*lüt*). Largely
+   annotator inconsistency, which is why CER overstates the real error.
+5. **Stripped fillers ("e", "ä").** Pure deletion of the reference token
+   "e" is 6 % (22 of 363) against 1.2 % for words overall; the model
+   emits 352 "e" vs 363 in the references. "ä" is under-produced by about
+   half (40 vs 76) and mostly written as "e". "ä" is 0.2 % of test tokens,
+   so the effect on CER is negligible. Alignment is word-level `difflib`,
+   so "replaced" counts are inflated by mis-heard phrases.

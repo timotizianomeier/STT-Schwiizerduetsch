@@ -231,3 +231,16 @@ Format: date — decision — why.
   `RUN=v2_folded` (job 294936), fresh directory, v2 targets. A first
   submission under `RUN=v1` (294935) was cancelled after one minute: it
   would have resumed the finished 4,000-step run and done nothing.
+- 2026-11-05 — **`v2_folded` test result: CER 14.5 %, WER 43.9 %, FlexWER
+  24.0 %** (best dev checkpoint, step 3500; eval job 294938 had already
+  finished on 2026-10-02, the "pending" row in RESULTS.md was stale).
+  `v1_accents` scored 14.6 / 44.5 / 24.5 under the same folded scoring, so
+  folding accents cost nothing; `v2_folded` is the final model. Failure
+  analysis and the 50 random examples (read by Timo) are in RESULTS.md.
+- 2026-11-05 — **Filler check closed** (the follow-up from 2026-10-01):
+  the model deletes reference "e" in 6 % of cases (22 of 363) vs 1.2 % for
+  words overall, and under-produces "ä" by about half (40 vs 76 of 4,243
+  utterances). Negligible for CER; stripping fillers stands.
+- 2026-11-05 — Tooling notes: `sacct` fails on the cluster (accounting DB
+  refuses connections), use `squeue` and the files in `runs/`. SSH needs
+  `ssh-add ~/.ssh/id_rsa` once per login; the agent is empty after a reboot.
